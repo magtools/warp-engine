@@ -21,11 +21,11 @@ then
         psql_version=$( warp_question_ask_default "Choose the PostgreSQL engine version: $(warp_message_info [9.6.15]) " "9.6.15" )
     
         case $psql_version in
-        '9.6.15')
+        '9.6.15'|'12.5'|'13.5')
             break
         ;;
         *)
-            warp_message_info2 "Selected: $psql_version, the available versions is 9.6.15"
+            warp_message_info2 "Selected: $psql_version, the available versions is 9.6.15, 12.5, 13.5"
         ;;
         esac        
     done

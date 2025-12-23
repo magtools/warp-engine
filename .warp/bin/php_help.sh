@@ -76,7 +76,7 @@ function php_switch_help()
     warp_message ""
     warp_message_info "Help:"
     warp_message " this command allows to change the PHP version"
-    warp_message " the available versions are 5.6-fpm, 7.0-fpm, 7.1-fpm, 7.2-fpm, 7.3-fpm, 7.4-fpm, 7.1.17-fpm, 7.1.26-fpm, 7.2.24-fpm"
+    warp_message " the available versions are 5.6-fpm, 7.0-fpm, 7.1-fpm, 7.2-fpm, 7.3-fpm, 7.4-fpm, 7.1.17-fpm, 7.1.26-fpm, 7.2.24-fpm, 8.1.3-fpm"
     warp_message ""
 
     warp_message_info "Example:"

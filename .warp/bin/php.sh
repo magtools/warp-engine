@@ -94,11 +94,11 @@ function php_switch()
     else
         php_version=$1
         case $php_version in
-        '5.6-fpm'|'7.0-fpm'|'7.1-fpm'|'7.2-fpm'|'7.3-fpm'|'7.4-fpm'|'7.1.17-fpm'|'7.1.26-fpm'|'7.2.24-fpm')
+        '7.3-fpm'| '7.4-fpm' | '7.4-fpm_v2' |'7.4.15-fpm' | '8.1.3-fpm' | '8.2.3-fpm' | '8.3-fpm' | '8.4-fpm')
             warp_message_info2 "PHP new version selected: $php_version"
         ;;
         *)
-            warp_message_info2 "Selected: $php_version, the available versions are 5.6-fpm, 7.0-fpm, 7.1-fpm, 7.2-fpm, 7.3-fpm, 7.4-fpm, 7.1.17-fpm, 7.1.26-fpm, 7.2.24-fpm"
+            warp_message_info2 "Selected: $php_version, the available versions are 7.3-fpm, 7.4-fpm, 7.4-fpm_v2, 7.4-fpm-v2_arm, 7.4.15-fpm, 8.1.3-fpm, 8.2.3-fpm, 8.3-fpm, 8.4-fpm"
             warp_message_warn "for help run: $(warp_message_bold './warp php switch --help')"
             exit 1;
         ;;

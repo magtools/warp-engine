@@ -24,21 +24,21 @@ then
     warp_message_info2 "You can check the available versions of varnish here $(warp_message_info '[ https://hub.docker.com/r/summasolutions/varnish/tags/ ]')"
     
     while : ; do
+    if [ $(uname -m) == 'arm64' ] ; then
+        varnish_version=$( warp_question_ask_default "Choose a version of varnish: $(warp_message_info [7.0.1]) " "7.0.1" )
+    else 
         varnish_version=$( warp_question_ask_default "Choose a version of varnish: $(warp_message_info [5.2.1]) " "5.2.1" )
-    
-        case $varnish_version in
-        '4.0.5')
-            break
-        ;;
-        '5.2.1')
-            break
+    fi
+        case $varnish_version in 
+        '4.0.5'|'5.2.1'|'6.0.9'|'7.0.1')
+            break;
         ;;
         *)
-            warp_message_info2 "Selected: $varnish_version, the available versions are: 4.0.5, 5.2.1"
+            warp_message_info2 "Selected: $varnish_version, the available versions are: 4.0.5, 5.2.1, 6.0.9, 5.2.1"
         ;;
         esac        
     done
-    warp_message_info2 "Selected version of varnish: $varnish_version"    
+    warp_message_info2 "Selected version of varnish: $varnish_version"
 
     cat $PROJECTPATH/.warp/setup/varnish/tpl/varnish.yml >> $DOCKERCOMPOSEFILESAMPLE
 fi; 

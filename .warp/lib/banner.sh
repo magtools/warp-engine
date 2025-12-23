@@ -27,7 +27,7 @@ function warp_banner()
     warp_message "$FCYN      ____     ___   ____  __   ______ $RS"
     warp_message "$FCYN ____      ___      ______    ____   ____  $RS"
     warp_message ""
-    warp_message "$FCYN WARP ENGINE\e[0m - Speeding up! your development infraestructure"
+    warp_message "$FCYN WARP ENGINE\e[0m - Speeding up! your development infrastructure"
     warp_message "Version: $WARP_VERSION"
     warp_message "Commit version: $WARP_COMMIT"
     warp_message ""

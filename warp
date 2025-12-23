@@ -337,35 +337,17 @@ help() {
 }
 
 warp_check_latest_version() {
-    warp_message_warn "looking for a new version available..."
-    WARP_VERSION_LATEST=$(curl --silent "https://api.github.com/repos/SummaSolutions/warp-engine/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-
-    if [ -f $PROJECTPATH/.warp/lib/version.sh ] && [ ! -z "$WARP_VERSION_LATEST" ]
-    then        
-        . $PROJECTPATH/.warp/lib/version.sh
-        WARP_VERSION_LOCAL=$(echo $WARP_VERSION | tr -d ".")
-        _WARP_VERSION_LATEST=$(echo $WARP_VERSION_LATEST | tr -d ".")
-        
-        if [ $WARP_VERSION_LOCAL -lt $_WARP_VERSION_LATEST ] && [ ! $WARP_VERSION_LOCAL -eq $_WARP_VERSION_LATEST ]
-        then
-            warp_message "current version $WARP_VERSION, new version available $WARP_VERSION_LATEST"
-
-            while : ; do
-                respuesta_update_warp_online=$( warp_question_ask_default "Are you sure to update Warp Framework? $(warp_message_info [Y/n]) " "Y" )
-                if [ "$respuesta_update_warp_online" = "Y" ] || [ "$respuesta_update_warp_online" = "y" ] || [ "$respuesta_update_warp_online" = "N" ] || [ "$respuesta_update_warp_online" = "n" ] ; then
-                    break
-                else
-                    warp_message_warn "Incorrect answer, you must select between two options: $(warp_message_info [Y/n]) "
-                fi
-            done
-
-            if [ "$respuesta_update_warp_online" = "Y" ] || [ "$respuesta_update_warp_online" = "y" ]
-            then
-                curl --silent -L -o warp http://ct.summasolutions.net/warp-engine/warp && chmod 755 warp
-                warp_setup --self-update
-            fi
-        fi
+    if [ ! -f "$PROJECTPATH/.warp/lib/version.sh" ]; then
+        return
     fi
+
+    . "$PROJECTPATH/.warp/lib/version.sh"
+
+    if [ -z "$WARP_VERSION" ]; then
+        return
+    fi
+
+    echo "Version $WARP_VERSION"
 }
 
 warp_message_not_install_yet() {
@@ -375,7 +357,7 @@ warp_message_not_install_yet() {
 
 warp_update() {
     if [ "$1" = "-f" ] || [ "$1" = "--force" ] ; then
-        warp_setup --force
+        warp_check_latest_version
         exit 0;
     fi;
 
@@ -396,7 +378,7 @@ warp_update() {
         exit 0;
     fi
 
-    warp_setup update
+    warp_check_latest_version
 }
 
 usage() {

@@ -3,3 +3,14 @@ skip-host-cache
 skip-name-resolve
 datadir = /var/lib/mysql
 secure-file-priv = ""
+
+#
+# Configs especificas performance y mariadb
+#
+join_buffer_size = 1048576
+log_bin_trust_function_creators = 1
+max_heap_table_size	= 33554432
+optimizer_switch = "rowid_filter=off"
+optimizer_use_condition_selectivity = 1
+table_definition_cache = 1000
+tmp_table_size = 33554432

@@ -269,6 +269,10 @@ if [[ -n $GF_PHP_EXTRA_LIBS && -n $GF_PHP_VERSION ]]; then
             PHP_BASE_LIBS=("${PHP_7_4_fpm_BASE_LIBS[@]}")
             PHP_AVAILABLE_LIBS=("${PHP_7_4_AVAILABLE_LIBS[@]}")
         ;;
+        8.1.3-fpm)
+            PHP_BASE_LIBS=("${PHP_8_1_3_fpm_BASE_LIBS[@]}")
+            PHP_AVAILABLE_LIBS=("${PHP_8_1_3_AVAILABLE_LIBS[@]}")
+        ;;
         *)
             warp_message_warn "Can not install modules in your PHP Image version."
             warp_message_warn "Please report it to maintainers."

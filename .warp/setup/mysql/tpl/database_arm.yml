@@ -1,6 +1,7 @@
 
   mysql:
-    image: mariadb:${MYSQL_VERSION}
+    image: mysql:${MYSQL_VERSION}
+    platform: linux/x86_64
     env_file: .env
     ports:
       - "${DATABASE_BINDED_PORT}:3306"
