@@ -9,9 +9,14 @@ TAG_VERSIONS=`git tag -l | sort -r`
 cat release/commit.sh.template | sed -e "s/COMMIT_VERSION/${COMMIT_VERSION}/" > .warp/lib/commit.sh
 cat release/version.sh.template | sed -e "s/BUILD_VERSION/${BUILD_VERSION}/" > .warp/lib/version.sh
 
-
+# Crea el compilado ejecutable:
+#
+# cat warp.sh warparchive.tar.xz > warp
+#
 tar cJf warparchive.tar.xz --exclude=".DS_Store" .warp/.
-cat warp > dist/warp
+cat warp.sh > dist/warp
 cat warparchive.tar.xz >> dist/warp
 chmod +x dist/warp
 cp dist/warp dist/warp_$BUILD_VERSION
+
+# OUTPUT dist/warp

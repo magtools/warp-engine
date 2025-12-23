@@ -23,7 +23,7 @@ then
         elasticsearch_version=$( warp_question_ask_default "Choose a version of elasticsearch: $(warp_message_info [2.12.0]) " "2.12.0" )
     fi
         case $elasticsearch_version in
-        ''2.12.0'|'1.7.6')
+        '2.12.0'|'1.7.6')
             break;
         ;;
         *)
