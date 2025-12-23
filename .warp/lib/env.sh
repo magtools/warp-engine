@@ -29,7 +29,19 @@ function warp_env_read_var()
 #   string
 function warp_env_random_password()
 {
-    set="abcdefghijklmonpqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+    set="abcdefghijklmonpqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789=+"
+    n=$1
+    rand=""
+    for i in `seq 1 $n`; do
+        char=${set:$RANDOM % ${#set}:1}
+        rand+=$char
+    done
+    echo $rand
+}
+
+function warp_env_random_name()
+{
+    set="abcdefghijklmonpqrstuvwxyz"
     n=$1
     rand=""
     for i in `seq 1 $n`; do

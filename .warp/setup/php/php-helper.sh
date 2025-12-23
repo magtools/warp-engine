@@ -29,7 +29,7 @@
             echo "zend_extension = /usr/local/lib/php/extensions/no-debug-non-zts-20190902/xdebug.so" >> $PROJECTPATH/.warp/docker/config/php/ext-xdebug.ini.sample 
             echo ";zend_extension = /usr/local/lib/php/extensions/no-debug-non-zts-20190902/iocube.so" >> $PROJECTPATH/.warp/docker/config/php/ext-ioncube.ini.sample 
         ;;
-        '8.1.3-fpm')
+        '8.1.3-fpm'|'8.2.3-fpm'|'8.3-fpm'|'8.4-fpm')
             echo "zend_extension =  /usr/local/lib/php/extensions/no-debug-non-zts-20210902/xdebug.so" >> $PROJECTPATH/.warp/docker/config/php/ext-xdebug.ini.sample 
             echo ";zend_extension = /usr/local/lib/php/extensions/no-debug-non-zts-20210902/iocube.so" >> $PROJECTPATH/.warp/docker/config/php/ext-ioncube.ini.sample 
         ;;

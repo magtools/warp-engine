@@ -20,14 +20,14 @@ then
     if [ $(uname -m) == 'arm64' ] ; then
         elasticsearch_version=$( warp_question_ask_default "Choose a version of elasticsearch: $(warp_message_info [7.10.1_arm]) " "7.10.1_arm" )
     else 
-        elasticsearch_version=$( warp_question_ask_default "Choose a version of elasticsearch: $(warp_message_info [7.6.2]) " "7.6.2" )
+        elasticsearch_version=$( warp_question_ask_default "Choose a version of elasticsearch: $(warp_message_info [2.12.0]) " "2.12.0" )
     fi
         case $elasticsearch_version in
-        '7.16.1'|'7.10.2'|'7.10.1_arm'|'7.10.1'|'7.9.3_arm'|'7.9.3'|'7.6.2'|'6.5.4'|'6.4.2'|'5.6.8'|'2.4.6'|'2.4.4'|'1.7.6')
+        ''2.12.0'|'1.7.6')
             break;
         ;;
         *)
-            warp_message_info2 "Selected: $elasticsearch_version, the available versions are: 7.16.1, 7.10.2, 7.10.1_arm, 7.10.1, 7.9.3_arm, 7.9.3, 7.6.2, 6.5.4, 6.4.2, 5.6.8, 2.4.6, 2.4.4, 1.7.6"
+            warp_message_info2 "Selected: $elasticsearch_version, the available versions are: 2.12.0"
         ;;
         esac        
     done
@@ -41,6 +41,7 @@ then
     echo "# Elasticsearch" >> $ENVIRONMENTVARIABLESFILESAMPLE
     echo "ES_VERSION=$elasticsearch_version" >> $ENVIRONMENTVARIABLESFILESAMPLE
     echo "ES_MEMORY=$elasticsearch_memory" >> $ENVIRONMENTVARIABLESFILESAMPLE
+    echo "ES_PASSWORD=XmsES_MEMORY++99" >> $ENVIRONMENTVARIABLESFILESAMPLE
     echo ""  >> $ENVIRONMENTVARIABLESFILESAMPLE
 
 fi; 

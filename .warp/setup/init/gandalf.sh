@@ -92,7 +92,7 @@ framework=$GF_FRAMEWORK
 
 # Hash Compose name if namespace and project name are empty:
 if [[ -z $namespace_name ]] && [[ -z $project_name ]]; then   
-    COMPOSE_PROJECT_NAME=$(warp_env_random_password 9)
+    COMPOSE_PROJECT_NAME=$(warp_env_random_name 7)
 else
     COMPOSE_PROJECT_NAME=$namespace_name\-$project_name
 fi
