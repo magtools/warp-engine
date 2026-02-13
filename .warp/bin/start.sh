@@ -39,28 +39,28 @@ function start() {
   fi
 
   if [ "$1" = "-h" ] || [ "$1" = "--help" ] ; then
-        
+
       start_help_usage
       exit 1;
   else
 
-    # Check 
+    # Check
     warp_check_files
 
     if [ "$1" = "-f" ] || [ "$1" = "-F" ] ; then
       [ ! -f $2 ] && warp_message_error "Custom yml file $2 not exist" && exit 1;
 
-      CUSTOM_YML_FILE=$2;      
+      CUSTOM_YML_FILE=$2;
     fi
 
     if [ "$1" = "--selenium" ] ; then
-      CUSTOM_YML_FILE=$DOCKERCOMPOSEFILESELENIUM;      
+      CUSTOM_YML_FILE=$DOCKERCOMPOSEFILESELENIUM;
     fi
 
     case "$(uname -s)" in
       Darwin)
         USE_DOCKER_SYNC=$(warp_env_read_var USE_DOCKER_SYNC)
-        if [ "$USE_DOCKER_SYNC" = "Y" ] || [ "$USE_DOCKER_SYNC" = "y" ] ; then 
+        if [ "$USE_DOCKER_SYNC" = "Y" ] || [ "$USE_DOCKER_SYNC" = "y" ] ; then
           # start data sync
           docker-sync start
         fi
@@ -123,7 +123,18 @@ function start_main()
 }
 
 check_PHP_Image() {
-  PHP_IMAGE_CREATION_TAG=$(docker image inspect summasolutions/php:${PHP_VERSION} --format '{{.Created}}')
+  PHP_IMAGE="summasolutions/php:${PHP_VERSION}"
+  if ! docker image inspect "$PHP_IMAGE" --format '{{.Created}}' >/dev/null 2>&1; then
+    PHP_IMAGE="66ecommerce/php:${PHP_VERSION}"
+  fi
+
+  PHP_IMAGE_CREATION_TAG=$(docker image inspect "$PHP_IMAGE" --format '{{.Created}}' 2>/dev/null)
+  if [ -z "$PHP_IMAGE_CREATION_TAG" ]; then
+    warp_message_warn ""
+    warp_message_warn "    PHP image not found: summasolutions/php:${PHP_VERSION} or 66ecommerce/php:${PHP_VERSION}"
+    return
+  fi
+
   PHP_IMAGE_CREATION_TAG=$(echo $PHP_IMAGE_CREATION_TAG | sed 's/\-/ /g')
   PHP_IMAGE_CREATION_TAG=($PHP_IMAGE_CREATION_TAG)
   if [[ ${PHP_IMAGE_CREATION_TAG[0]} -lt 2021 ]]; then
@@ -135,7 +146,7 @@ check_PHP_Image() {
 check_ES_version() {
   ES_VER=($(grep "ES_VERSION" $PROJECTPATH/.env | sed 's/=/ /g'))
   ES_VER=${ES_VER[1]}
-  
+
   if [[ ${ES_VER:0:1} -eq '6' ]]; then
     warp_message_warn "If Elasticsearch doesn't work, maybe you have to use the following cmd:"
     warp_message_warn "    sudo sysctl -w vm.max_map_count = 262144"

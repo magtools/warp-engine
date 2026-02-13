@@ -49,9 +49,17 @@ function composer() {
 
     if [ "$1" = "-T" ]; then
       shift 1
-      docker-compose -f $DOCKERCOMPOSEFILE exec -T php bash -c "php -dmemory_limit=-1 /usr/local/bin/composer $*"
+      docker-compose -f $DOCKERCOMPOSEFILE exec -T php bash -c 'COMPOSER_BIN=""; \
+        [ -x /usr/local/bin/composer ] && COMPOSER_BIN="/usr/local/bin/composer"; \
+        [ -z "$COMPOSER_BIN" ] && [ -x /usr/bin/composer ] && COMPOSER_BIN="/usr/bin/composer"; \
+        [ -z "$COMPOSER_BIN" ] && echo "composer not found in /usr/local/bin or /usr/bin" && exit 1; \
+        php -dmemory_limit=-1 "$COMPOSER_BIN" '"$*"
     else
-      docker-compose -f $DOCKERCOMPOSEFILE exec php bash -c "php -dmemory_limit=-1 /usr/local/bin/composer $*"
+      docker-compose -f $DOCKERCOMPOSEFILE exec php bash -c 'COMPOSER_BIN=""; \
+        [ -x /usr/local/bin/composer ] && COMPOSER_BIN="/usr/local/bin/composer"; \
+        [ -z "$COMPOSER_BIN" ] && [ -x /usr/bin/composer ] && COMPOSER_BIN="/usr/bin/composer"; \
+        [ -z "$COMPOSER_BIN" ] && echo "composer not found in /usr/local/bin or /usr/bin" && exit 1; \
+        php -dmemory_limit=-1 "$COMPOSER_BIN" '"$*"
     fi;
   fi;
 }

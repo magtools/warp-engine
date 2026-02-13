@@ -48,12 +48,40 @@ function mysql_info()
     fi
 }
 
-function mysql_connect() 
+warp_mysql_flavor() {
+    MYSQL_DOCKER_IMAGE=$(warp_env_read_var MYSQL_DOCKER_IMAGE)
+    case "$MYSQL_DOCKER_IMAGE" in
+        mariadb:*|*/mariadb:*|*mariadb*)
+            echo "mariadb"
+            ;;
+        *)
+            echo "mysql"
+            ;;
+    esac
+}
+
+warp_mysql_client_bin() {
+    if [ "$(warp_mysql_flavor)" = "mariadb" ]; then
+        echo "mariadb"
+    else
+        echo "mysql"
+    fi
+}
+
+warp_mysql_dump_bin() {
+    if [ "$(warp_mysql_flavor)" = "mariadb" ]; then
+        echo "mariadb-dump"
+    else
+        echo "mysqldump"
+    fi
+}
+
+function mysql_connect()
 {
 
     if [ "$1" = "-h" ] || [ "$1" = "--help" ]
     then
-        mysql_connect_help 
+        mysql_connect_help
         exit 1
     fi;
 
@@ -66,10 +94,11 @@ function mysql_connect()
 
     DATABASE_ROOT_PASSWORD=$(warp_env_read_var DATABASE_ROOT_PASSWORD)
 
-    docker-compose -f $DOCKERCOMPOSEFILE exec mysql bash -c "mysql -uroot -p$DATABASE_ROOT_PASSWORD"
+    MYSQL_CLIENT_BIN=$(warp_mysql_client_bin)
+    docker-compose -f $DOCKERCOMPOSEFILE exec mysql bash -c "CMD=\"$MYSQL_CLIENT_BIN\"; command -v \"\$CMD\" >/dev/null 2>&1 || CMD=\"mysql\"; \"\$CMD\" -uroot -p$DATABASE_ROOT_PASSWORD"
 }
 
-function mysql_update_db() 
+function mysql_update_db()
 {
 
     DOCKER_PRIVATE_REGISTRY=$(warp_env_read_var DOCKER_PRIVATE_REGISTRY)
@@ -85,14 +114,14 @@ function mysql_update_db()
     warp_message "* pull new images"
     warp_message "* remove volume db"
     warp_message "* start containers"
-    
+
     respuesta_update_db=$( warp_question_ask_default "Do you want to continue? $(warp_message_info [Y/n]) " "Y" )
 
     if [ "$respuesta_update_db" = "Y" ] || [ "$respuesta_update_db" = "y" ]
     then
 
         if [ $(warp_check_is_running) = true ]; then
-            warp stop --hard 
+            warp stop --hard
         fi
 
         #  CHECK IF GITIGNOREFILE CONTAINS FILES WARP TO IGNORE
@@ -113,7 +142,7 @@ function mysql_update_db()
               aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $DOCKER_PRIVATE_REGISTRY
             fi
 
-            # check if login Succeeded 
+            # check if login Succeeded
             if [ $? = 0 ]
             then
                 warp docker pull
@@ -121,17 +150,17 @@ function mysql_update_db()
                 warp start
             fi
         fi
-    else 
-        warp_message_warn "* aborting update database"    
+    else
+        warp_message_warn "* aborting update database"
     fi
 }
 
-function mysql_connect_ssh() 
+function mysql_connect_ssh()
 {
 
     if [ "$1" = "-h" ] || [ "$1" = "--help" ]
     then
-        mysql_ssh_help 
+        mysql_ssh_help
         exit 1
     fi;
 
@@ -145,12 +174,12 @@ function mysql_connect_ssh()
     docker-compose -f $DOCKERCOMPOSEFILE exec mysql bash -c "export COLUMNS=`tput cols`; export LINES=`tput lines`; exec bash"
 }
 
-function mysql_switch() 
+function mysql_switch()
 {
 
     if [ "$1" = "-h" ] || [ "$1" = "--help" ] || [ -z "$1" ]
     then
-        mysql_switch_help 
+        mysql_switch_help
         exit 1
     fi;
 
@@ -162,7 +191,7 @@ function mysql_switch()
     fi
 
     MYSQL_VERSION_CURRENT=$(warp_env_read_var MYSQL_VERSION)
-    warp_message_info2 "You current MySQL version is: $MYSQL_VERSION_CURRENT"    
+    warp_message_info2 "You current MySQL version is: $MYSQL_VERSION_CURRENT"
 
     if [ $MYSQL_VERSION_CURRENT = $1 ]
     then
@@ -193,7 +222,7 @@ function mysql_switch()
             then
                 sudo rm -rf $PROJECTPATH/.warp/docker/volumes/mysql/* 2> /dev/null
             fi
-            
+
             # delete volume database
             warp volume --rm mysql 2> /dev/null
 
@@ -201,7 +230,7 @@ function mysql_switch()
 
             if [ ! -z "$DOCKER_PRIVATE_REGISTRY" ] ; then
                 NAMESPACE=$(warp_env_read_var NAMESPACE)
-                PROJECT=$(warp_env_read_var PROJECT)                
+                PROJECT=$(warp_env_read_var PROJECT)
                 mysql_docker_image="${NAMESPACE}-${PROJECT}-dbs"
 
                 CREATE_MYSQL_IMAGE_FROM="mysql:${mysql_version} ${DOCKER_PRIVATE_REGISTRY}/${mysql_docker_image}:latest"
@@ -216,23 +245,23 @@ function mysql_switch()
             #warp_mysql_check_files_yaml
 
             # copy base files
-            cp -R $PROJECTPATH/.warp/setup/mysql/config/ $PROJECTPATH/.warp/docker/config/mysql/    
+            cp -R $PROJECTPATH/.warp/setup/mysql/config/ $PROJECTPATH/.warp/docker/config/mysql/
 
             warp_message_warn "* commit new changes"
             warp_message_warn "* at each environment run: $(warp_message_bold './warp reset')"
             warp_message_warn "* after that run: $(warp_message_bold './warp mysql --update')"
-        else 
+        else
             warp_message_warn "* aborting switch database"
         fi
-    fi    
+    fi
 }
 
-function mysql_dump() 
+function mysql_dump()
 {
 
     if [ "$1" = "-h" ] || [ "$1" = "--help" ]
     then
-        mysql_dump_help 
+        mysql_dump_help
         exit 1
     fi;
 
@@ -248,8 +277,9 @@ function mysql_dump()
     db="$@"
 
     [ -z "$db" ] && warp_message_error "Database name is required" && exit 1
-    
-    docker-compose -f $DOCKERCOMPOSEFILE exec mysql bash -c "mysqldump -uroot -p$DATABASE_ROOT_PASSWORD $db 2> /dev/null"
+
+    MYSQL_DUMP_BIN=$(warp_mysql_dump_bin)
+    docker-compose -f $DOCKERCOMPOSEFILE exec mysql bash -c "CMD=\"$MYSQL_DUMP_BIN\"; command -v \"\$CMD\" >/dev/null 2>&1 || CMD=\"mysqldump\"; \"\$CMD\" -uroot -p$DATABASE_ROOT_PASSWORD $db 2> /dev/null"
 }
 
 function mysql_import()
@@ -257,7 +287,7 @@ function mysql_import()
 
     if [ "$1" = "-h" ] || [ "$1" = "--help" ]
     then
-        mysql_import_help 
+        mysql_import_help
         exit 1
     fi;
 
@@ -273,8 +303,9 @@ function mysql_import()
     [ -z "$db" ] && warp_message_error "Database name is required" && exit 1
 
     DATABASE_ROOT_PASSWORD=$(warp_env_read_var DATABASE_ROOT_PASSWORD)
-    
-    docker-compose -f $DOCKERCOMPOSEFILE exec -T mysql bash -c "mysql -uroot -p$DATABASE_ROOT_PASSWORD $db 2> /dev/null"
+
+    MYSQL_CLIENT_BIN=$(warp_mysql_client_bin)
+    docker-compose -f $DOCKERCOMPOSEFILE exec -T mysql bash -c "CMD=\"$MYSQL_CLIENT_BIN\"; command -v \"\$CMD\" >/dev/null 2>&1 || CMD=\"mysql\"; \"\$CMD\" -uroot -p$DATABASE_ROOT_PASSWORD $db 2> /dev/null"
 
 }
 
