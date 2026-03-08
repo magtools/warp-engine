@@ -324,8 +324,13 @@ warp_pending_update_file() {
     echo "$PROJECTPATH/var/warp-update/.pending-update"
 }
 
-warp_pending_update_write() {
+warp_pending_update_ensure() {
     mkdir -p "$PROJECTPATH/var/warp-update" 2>/dev/null
+    [ -f "$(warp_pending_update_file)" ] || : > "$(warp_pending_update_file)"
+}
+
+warp_pending_update_write() {
+    warp_pending_update_ensure
     cat > "$(warp_pending_update_file)"
 }
 
@@ -339,11 +344,12 @@ warp_pending_update_box_line() {
 }
 
 warp_pending_update_clear() {
-    mkdir -p "$PROJECTPATH/var/warp-update" 2>/dev/null
+    warp_pending_update_ensure
     : > "$(warp_pending_update_file)"
 }
 
 warp_pending_update_show() {
+    warp_pending_update_ensure
     pending_file="$(warp_pending_update_file)"
     [ -s "$pending_file" ] || return
     echo ""
@@ -396,6 +402,12 @@ warp_post_command_hook() {
 
 warp_update_version_to_int() {
     echo "$1" | tr -d '.'
+}
+
+warp_update_tmp_clean() {
+    _tmp_dir="$PROJECTPATH/var/warp-update"
+    [ -d "$_tmp_dir" ] || return
+    find "$_tmp_dir" -mindepth 1 ! -name ".pending-update" -exec rm -rf {} + 2>/dev/null
 }
 
 warp_checksum_file_sha256() {
@@ -522,10 +534,9 @@ warp_update() {
     fi
 
     warp_message_info "Buscando actualizaciones..."
-    rm -rf "$WARP_TMP_DIR" 2>/dev/null
+    warp_pending_update_ensure
+    warp_update_tmp_clean
     mkdir -p "$WARP_TMP_EXTRACT_DIR" || { warp_message_error "unable to create $WARP_TMP_EXTRACT_DIR"; exit 1; }
-
-    trap 'rm -rf "$WARP_TMP_DIR" 2>/dev/null' RETURN
 
     curl --silent --show-error --fail --location "${WARP_REMOTE_BASE_URL}/version.md" -o "$WARP_TMP_VERSION" || { warp_message_error "unable to download version.md"; exit 1; }
     WARP_VERSION_LATEST=$(cat "$WARP_TMP_VERSION" | tr -d '\r\n')
@@ -549,6 +560,7 @@ warp_update() {
         warp_message_info "Estado: actualizado"
         warp_message_info2 "warp is up to date ($WARP_VERSION)"
         warp_pending_update_clear
+        warp_update_tmp_clean
         exit 0
     fi
 
@@ -582,6 +594,7 @@ warp_update() {
     cp "$WARP_TMP_WARP" "$WARP_TARGET_FILE" || { warp_message_error "unable to update warp binary"; exit 1; }
     chmod 755 "$WARP_TARGET_FILE" || { warp_message_error "unable to set executable permissions on warp"; exit 1; }
     warp_pending_update_clear
+    warp_update_tmp_clean
 
     warp_message_info2 "warp updated successfully to $WARP_VERSION_LATEST"
     warp_message_warn "run ./warp to use the new binary"
