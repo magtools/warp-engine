@@ -1,0 +1,14 @@
+[project]
+root = "__PROJECT_ROOT__"
+
+[sandbox]
+mode = "workspace-write"
+writable_roots = ["__PROJECT_ROOT__", "/tmp"]
+approval_policy = "unless-trusted"
+
+[environment]
+shell = "bash"
+cwd = "__PROJECT_ROOT__"
+user_locale = "es-ES"
+user_location = "Argentina"
+current_date = "__CURRENT_DATE__"

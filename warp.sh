@@ -54,7 +54,7 @@ main () {
             _NEXT_CHECK=$(cat "$CHECK_UPDATE_FILE")
             _TODAY=$(date +%Y%m%d)
 
-            if [[ $_TODAY -ge $_NEXT_CHECK ]] && [[ "$1" != "start" ]]
+            if [[ $_TODAY -ge $_NEXT_CHECK ]] && ! warp_should_skip_update_check "$1"
             then
                 warp_check_latest_version
                 # update next check
@@ -336,6 +336,40 @@ help() {
     fi;
 }
 
+warp_should_skip_update_check() {
+    case "$1" in
+        mysql|start|stop)
+            return 0
+        ;;
+        *)
+            return 1
+        ;;
+    esac
+}
+
+warp_update_version_to_int() {
+    echo "$1" | tr -d '.'
+}
+
+warp_checksum_file_sha256() {
+    file_path="$1"
+
+    if command -v sha256sum >/dev/null 2>&1; then
+        sha256sum "$file_path" | awk '{print $1}'
+    elif command -v shasum >/dev/null 2>&1; then
+        shasum -a 256 "$file_path" | awk '{print $1}'
+    elif command -v openssl >/dev/null 2>&1; then
+        openssl dgst -sha256 "$file_path" | awk '{print $NF}'
+    else
+        return 1
+    fi
+}
+
+warp_fetch_latest_version() {
+    warp_remote_base_url="https://raw.githubusercontent.com/magtools/warp-engine/refs/heads/master/dist"
+    curl --silent --show-error --fail --location "${warp_remote_base_url}/version.md" 2>/dev/null | tr -d '\r\n'
+}
+
 warp_check_latest_version() {
     if [ ! -f "$PROJECTPATH/.warp/lib/version.sh" ]; then
         return
@@ -347,7 +381,25 @@ warp_check_latest_version() {
         return
     fi
 
-    echo "Version $WARP_VERSION"
+    WARP_VERSION_LATEST=$(warp_fetch_latest_version)
+    if [ -z "$WARP_VERSION_LATEST" ]; then
+        warp_message_warn "unable to check latest Warp version"
+        return
+    fi
+
+    WARP_VERSION_LOCAL_INT=$(warp_update_version_to_int "$WARP_VERSION")
+    WARP_VERSION_LATEST_INT=$(warp_update_version_to_int "$WARP_VERSION_LATEST")
+
+    if [[ "$WARP_VERSION_LOCAL_INT" =~ ^[0-9]+$ ]] && [[ "$WARP_VERSION_LATEST_INT" =~ ^[0-9]+$ ]]; then
+        if [ "$WARP_VERSION_LOCAL_INT" -lt "$WARP_VERSION_LATEST_INT" ]; then
+            warp_message_warn "current version $WARP_VERSION, new version available $WARP_VERSION_LATEST"
+            warp_message_warn "run ./warp update to apply"
+        else
+            echo "Version $WARP_VERSION"
+        fi
+    else
+        warp_message_warn "invalid version format (local: $WARP_VERSION, remote: $WARP_VERSION_LATEST)"
+    fi
 }
 
 warp_message_not_install_yet() {
@@ -356,9 +408,18 @@ warp_message_not_install_yet() {
 }
 
 warp_update() {
+    WARP_REMOTE_BASE_URL="https://raw.githubusercontent.com/magtools/warp-engine/refs/heads/master/dist"
+    WARP_TMP_DIR="$PROJECTPATH/var/warp-update"
+    WARP_TMP_EXTRACT_DIR="$WARP_TMP_DIR/extracted"
+    WARP_TMP_WARP="$WARP_TMP_DIR/warp"
+    WARP_TMP_VERSION="$WARP_TMP_DIR/version.md"
+    WARP_TMP_SHA256="$WARP_TMP_DIR/sha256sum.md"
+    WARP_TARGET_FILE="$PROJECTPATH/warp"
+
     if [ "$1" = "-f" ] || [ "$1" = "--force" ] ; then
-        warp_check_latest_version
-        exit 0;
+        WARP_FORCE_UPDATE=1
+    else
+        WARP_FORCE_UPDATE=0
     fi;
 
     if [ ! -d $PROJECTPATH/.warp/lib ]; then
@@ -378,7 +439,62 @@ warp_update() {
         exit 0;
     fi
 
-    warp_check_latest_version
+    rm -rf "$WARP_TMP_DIR" 2>/dev/null
+    mkdir -p "$WARP_TMP_EXTRACT_DIR" || { warp_message_error "unable to create $WARP_TMP_EXTRACT_DIR"; exit 1; }
+
+    trap 'rm -rf "$WARP_TMP_DIR" 2>/dev/null' EXIT
+
+    curl --silent --show-error --fail --location "${WARP_REMOTE_BASE_URL}/version.md" -o "$WARP_TMP_VERSION" || { warp_message_error "unable to download version.md"; exit 1; }
+    WARP_VERSION_LATEST=$(cat "$WARP_TMP_VERSION" | tr -d '\r\n')
+
+    if [ -z "$WARP_VERSION_LATEST" ]; then
+        warp_message_error "remote version is empty"
+        exit 1
+    fi
+
+    . "$PROJECTPATH/.warp/lib/version.sh"
+    WARP_VERSION_LOCAL_INT=$(warp_update_version_to_int "$WARP_VERSION")
+    WARP_VERSION_LATEST_INT=$(warp_update_version_to_int "$WARP_VERSION_LATEST")
+
+    if [[ ! "$WARP_VERSION_LOCAL_INT" =~ ^[0-9]+$ ]] || [[ ! "$WARP_VERSION_LATEST_INT" =~ ^[0-9]+$ ]]; then
+        warp_message_error "invalid version format (local: $WARP_VERSION, remote: $WARP_VERSION_LATEST)"
+        exit 1
+    fi
+
+    if [ "$WARP_FORCE_UPDATE" -ne 1 ] && [ "$WARP_VERSION_LOCAL_INT" -ge "$WARP_VERSION_LATEST_INT" ]; then
+        warp_message_info2 "warp is up to date ($WARP_VERSION)"
+        exit 0
+    fi
+
+    curl --silent --show-error --fail --location "${WARP_REMOTE_BASE_URL}/sha256sum.md" -o "$WARP_TMP_SHA256" || { warp_message_error "unable to download sha256sum.md"; exit 1; }
+    curl --silent --show-error --fail --location "${WARP_REMOTE_BASE_URL}/warp" -o "$WARP_TMP_WARP" || { warp_message_error "unable to download warp"; exit 1; }
+
+    WARP_EXPECTED_SHA256=$(awk 'NR==1 {print $1}' "$WARP_TMP_SHA256" | tr -d '\r\n')
+    [ -z "$WARP_EXPECTED_SHA256" ] && warp_message_error "sha256sum.md is empty" && exit 1
+
+    WARP_ACTUAL_SHA256=$(warp_checksum_file_sha256 "$WARP_TMP_WARP")
+    [ -z "$WARP_ACTUAL_SHA256" ] && warp_message_error "unable to calculate SHA256 checksum" && exit 1
+
+    if [ "$WARP_EXPECTED_SHA256" != "$WARP_ACTUAL_SHA256" ]; then
+        warp_message_error "checksum mismatch for downloaded warp"
+        exit 1
+    fi
+
+    ARCHIVE=$(awk '/^__ARCHIVE__/ {print NR + 1; exit 0; }' "$WARP_TMP_WARP")
+    [ -z "$ARCHIVE" ] && warp_message_error "invalid downloaded warp payload" && exit 1
+
+    tail -n+${ARCHIVE} "$WARP_TMP_WARP" | tar xpJ -C "$WARP_TMP_EXTRACT_DIR" || { warp_message_error "unable to extract downloaded payload"; exit 1; }
+    [ ! -d "$WARP_TMP_EXTRACT_DIR/.warp" ] && warp_message_error "downloaded payload does not contain .warp" && exit 1
+
+    # Update .warp without touching .warp/docker/config
+    mkdir -p "$PROJECTPATH/.warp" 2>/dev/null
+    tar -C "$WARP_TMP_EXTRACT_DIR/.warp" --exclude='./docker/config' --exclude='./docker/config/*' -cf - . | tar -C "$PROJECTPATH/.warp" -xf - || { warp_message_error "unable to update .warp"; exit 1; }
+
+    cp "$WARP_TMP_WARP" "$WARP_TARGET_FILE" || { warp_message_error "unable to update warp binary"; exit 1; }
+    chmod 755 "$WARP_TARGET_FILE" || { warp_message_error "unable to set executable permissions on warp"; exit 1; }
+
+    warp_message_info2 "warp updated successfully to $WARP_VERSION_LATEST"
+    warp_message_warn "run ./warp to use the new binary"
 }
 
 usage() {
@@ -562,12 +678,10 @@ function warp_check_binary_was_updated() {
             # .env.sample > version.sh and not equal
             if [ $_WARP_ENV_VERSION -gt $_WARP_VERSION ] && [ ! $_WARP_ENV_VERSION -eq $_WARP_VERSION ]
             then
-                # different version binary and current, force update
-                warp_message_warn "binary and current version different, force update"
-                warp_setup --force
-
-                # save new version to ENVIRONMENTVARIABLESFILESAMPLE
-                # warp_env_change_version_sample_file
+                # different version binary and current, only notify.
+                # Never trigger legacy setup-based update paths automatically.
+                warp_message_warn "binary and current version are different"
+                warp_message_warn "run ./warp update to apply the safe update process"
             fi
         fi
     fi

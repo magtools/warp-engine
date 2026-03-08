@@ -5,9 +5,14 @@
 /.self-update-warp
 /docker-compose.yml
 .DS_Store
-/dist/warp*
+dist/
+!dist/warp
+!dist/version.md
+!dist/sha256sum.md
 *.tar.xz
 .warp/lib/commit.sh
 .warp/lib/version.sh
 **/auth.json
 /deploy
+/.codex/config.toml
+

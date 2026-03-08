@@ -97,8 +97,11 @@ See [LICENSE](LICENSE) for the full license text.
 
 This project was started by [Matias Anoniz](https://github.com/yosoyfunes/) and [Sebastian Arrubia](https://github.com/sarrubia/)
 
-![Matias Anoniz](https://github.com/yosoyfunes.png?size=100)
-![Sebastian Arrubia](https://github.com/sarrubia.png?size=100)
+![Matias Anoniz](https://github.com/yosoyfunes.png?size=150)
+![Sebastian Arrubia](https://github.com/sarrubia.png?size=150)
 
+## Maintainer Information
 
+This project main repository was deleted in 2021, this fork has been maintained by [Martin Gonzalez](https://github.com/magtools/) since then. 
 
+![Martin Gonzalez](https://github.com/magtools.png?size=300)
