@@ -5,7 +5,7 @@
 /.self-update-warp
 /docker-compose.yml
 .DS_Store
-dist/
+dist/*
 !dist/warp
 !dist/version.md
 !dist/sha256sum.md
