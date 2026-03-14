@@ -24,6 +24,8 @@ hyva_help_usage() {
     warp_message " First run:  discover -> setup -> build"
     warp_message " Next runs:  build (or watch)"
     warp_message " prepare runs generate only."
+    warp_message " setup runs as root; prepare/build/watch run as normal container user."
+    warp_message " setup normalizes ownership in tailwind path for non-root commands."
     warp_message " build auto-detects generate in prebuild/build."
     warp_message " setup/prepare/build show spinner + duration and write logs in var/log/warp-hyva/."
     warp_message ""

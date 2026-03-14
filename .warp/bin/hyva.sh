@@ -62,6 +62,7 @@ hyva_run_npm_with_log() {
     npm_action="$2"
     tailwind_path="$3"
     log_file="$4"
+    run_as_root="$5"
     cmd="npm --prefix \"$tailwind_path\" $npm_action"
 
     # watch must remain interactive/live; still tee to log.
@@ -72,7 +73,7 @@ hyva_run_npm_with_log() {
         warp_message ""
         warp_message_warn "# Watch mode running. Press Ctrl+C to stop."
         warp_message ""
-        hyva_npm_exec "$cmd" 2>&1 | tee "$log_file"
+        hyva_npm_exec "$cmd" "$run_as_root" 2>&1 | tee "$log_file"
         cmd_status=${PIPESTATUS[0]}
         end_ts="$(date +%s)"
         elapsed=$((end_ts - start_ts))
@@ -89,7 +90,7 @@ hyva_run_npm_with_log() {
     fi
 
     start_ts="$(date +%s)"
-    hyva_npm_exec "$cmd" > "$log_file" 2>&1 &
+    hyva_npm_exec "$cmd" "$run_as_root" > "$log_file" 2>&1 &
     cmd_pid=$!
 
     if [ -t 1 ]; then
@@ -243,7 +244,7 @@ hyva_check_runtime_preflight() {
         exit 1
     fi
 
-    docker-compose -f "$DOCKERCOMPOSEFILE" exec -T -u root php bash -lc "command -v npm >/dev/null 2>&1"
+    docker-compose -f "$DOCKERCOMPOSEFILE" exec -T php bash -lc "command -v npm >/dev/null 2>&1"
     if [ $? -ne 0 ]; then
         warp_message_error "npm not found in php container"
         warp_message_error "install Node/NPM in php image or use a php image with npm"
@@ -253,13 +254,22 @@ hyva_check_runtime_preflight() {
 
 hyva_npm_exec() {
     npm_cmd="$1"
+    run_as_root="$2"
 
     if [ -n "$WARP_HYVA_PHP_CONTAINER" ]; then
-        docker exec -i "$WARP_HYVA_PHP_CONTAINER" bash -lc "$npm_cmd"
+        if [ "$run_as_root" = "1" ]; then
+            docker exec -i -u root "$WARP_HYVA_PHP_CONTAINER" bash -lc "$npm_cmd"
+        else
+            docker exec -i "$WARP_HYVA_PHP_CONTAINER" bash -lc "$npm_cmd"
+        fi
         return $?
     fi
 
-    docker-compose -f "$DOCKERCOMPOSEFILE" exec -T -u root php bash -lc "$npm_cmd"
+    if [ "$run_as_root" = "1" ]; then
+        docker-compose -f "$DOCKERCOMPOSEFILE" exec -T -u root php bash -lc "$npm_cmd"
+    else
+        docker-compose -f "$DOCKERCOMPOSEFILE" exec -T php bash -lc "$npm_cmd"
+    fi
 }
 
 hyva_get_enabled_keys() {
@@ -388,9 +398,24 @@ hyva_require_theme_dependencies() {
     return 0
 }
 
+hyva_fix_permissions_after_setup() {
+    key="$1"
+    tailwind_path="$(hyva_json_get_field "$key" "tailwindPath" 2>/dev/null)"
+    [ -z "$tailwind_path" ] && return 1
+
+    if [ -n "$WARP_HYVA_PHP_CONTAINER" ]; then
+        docker exec -i -u root "$WARP_HYVA_PHP_CONTAINER" bash -lc "chown -R www-data:www-data \"$tailwind_path\" >/dev/null 2>&1 || true"
+        return 0
+    fi
+
+    docker-compose -f "$DOCKERCOMPOSEFILE" exec -T -u root php bash -lc "chown -R www-data:www-data \"$tailwind_path\" >/dev/null 2>&1 || true"
+    return 0
+}
+
 hyva_run_npm_action_for_key() {
     key="$1"
     npm_action="$2"
+    run_as_root="$3"
     tailwind_path="$(hyva_json_get_field "$key" "tailwindPath" 2>/dev/null)"
 
     hyva_validate_theme_paths "$key" || return 1
@@ -398,7 +423,7 @@ hyva_run_npm_action_for_key() {
     hyva_logs_ensure_dir
     log_file="$(hyva_log_file_for_action "$key" "$npm_action")"
     warp_message_info "[$key] npm --prefix $tailwind_path $npm_action"
-    hyva_run_npm_with_log "$key" "$npm_action" "$tailwind_path" "$log_file"
+    hyva_run_npm_with_log "$key" "$npm_action" "$tailwind_path" "$log_file" "$run_as_root"
     if [ $? -ne 0 ]; then
         warp_message_error "npm action failed for theme $key: $npm_action"
         return 1
@@ -670,7 +695,7 @@ hyva_prepare() {
         [ -z "$key" ] && continue
         hyva_validate_theme_paths "$key" || return 1
         hyva_require_theme_dependencies "$key" "prepare" || return 1
-        hyva_run_npm_action_for_key "$key" "run generate" || return 1
+        hyva_run_npm_action_for_key "$key" "run generate" "0" || return 1
     done <<EOF_TARGETS
 $targets
 EOF_TARGETS
@@ -705,10 +730,12 @@ hyva_setup() {
     targets="$(hyva_resolve_targets "prepare" "$explicit_key")" || return 1
     while IFS= read -r key; do
         [ -z "$key" ] && continue
-        hyva_run_npm_action_for_key "$key" "install" || return 1
+        hyva_run_npm_action_for_key "$key" "install" "1" || return 1
         if [ "$no_generate" = false ]; then
-            hyva_run_npm_action_for_key "$key" "run generate" || return 1
+            hyva_run_npm_action_for_key "$key" "run generate" "1" || return 1
         fi
+        hyva_fix_permissions_after_setup "$key"
+        warp_message_info2 "[$key] ownership normalized for non-root commands"
     done <<EOF_TARGETS
 $targets
 EOF_TARGETS
@@ -734,10 +761,10 @@ hyva_build() {
         else
             warp_message_info "[$key] package.json does not include generate in prebuild/build"
             warp_message_info "[$key] running prepare step before build"
-            hyva_run_npm_action_for_key "$key" "run generate" || return 1
+            hyva_run_npm_action_for_key "$key" "run generate" "0" || return 1
         fi
 
-        hyva_run_npm_action_for_key "$key" "run build" || return 1
+        hyva_run_npm_action_for_key "$key" "run build" "0" || return 1
     done <<EOF_TARGETS
 $targets
 EOF_TARGETS
@@ -756,7 +783,7 @@ hyva_watch() {
     [ -z "$key" ] && warp_message_error "no theme selected for watch" && return 1
     hyva_validate_theme_paths "$key" || return 1
     hyva_require_theme_dependencies "$key" "watch" || return 1
-    hyva_run_npm_action_for_key "$key" "run watch"
+    hyva_run_npm_action_for_key "$key" "run watch" "0"
 }
 
 hyva_main() {

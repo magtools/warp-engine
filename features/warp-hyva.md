@@ -143,6 +143,11 @@ Observabilidad:
 - se genera log por accion en `var/log/warp-hyva/`.
 - `watch` se mantiene interactivo con salida en vivo.
 
+Permisos de ejecucion:
+- `setup` ejecuta npm como `root` (instalacion de dependencias).
+- `prepare`, `build` y `watch` ejecutan npm como usuario normal del contenedor.
+- al finalizar `setup`, se normaliza ownership del `tailwindPath` a `www-data:www-data` para evitar problemas en comandos no-root.
+
 ## Parseo JSON en Bash
 Decision principal:
 - Usar `php -r` en contenedor para leer JSON de forma robusta sin depender de PHP en host.
