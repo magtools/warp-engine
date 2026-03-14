@@ -30,6 +30,7 @@
 . "$WARPFOLDER/bin/webserver.sh"
 . "$WARPFOLDER/bin/npm.sh"
 . "$WARPFOLDER/bin/grunt.sh"
+. "$WARPFOLDER/bin/hyva.sh"
 . "$WARPFOLDER/bin/crontab.sh"
 . "$WARPFOLDER/bin/fix.sh"
 . "$WARPFOLDER/bin/mailhog.sh"

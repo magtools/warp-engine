@@ -130,6 +130,11 @@ main () {
         grunt_main $*
         ;;
 
+        hyva)
+        shift 1
+        hyva_main $*
+        ;;
+
         logs)
         logs_main $*
         ;;
@@ -531,6 +536,34 @@ warp_update() {
         echo "checking if there are images available to update"
         docker-compose -f $DOCKERCOMPOSEFILE pull
         exit 0;
+    fi
+
+    if [ "$1" = "self" ] ; then
+        warp_message_info "Buscando actualizaciones..."
+        warp_message_info "Self update mode: aplicando payload de ./warp actual"
+        warp_pending_update_ensure
+        warp_update_tmp_clean
+        mkdir -p "$WARP_TMP_EXTRACT_DIR" || { warp_message_error "unable to create $WARP_TMP_EXTRACT_DIR"; exit 1; }
+
+        [ ! -f "$WARP_TARGET_FILE" ] && warp_message_error "file not found: ./warp" && exit 1
+
+        ARCHIVE=$(awk '/^__ARCHIVE__/ {print NR + 1; exit 0; }' "$WARP_TARGET_FILE")
+        [ -z "$ARCHIVE" ] && warp_message_error "invalid current warp payload" && exit 1
+
+        tail -n+${ARCHIVE} "$WARP_TARGET_FILE" | tar xpJ -C "$WARP_TMP_EXTRACT_DIR" || { warp_message_error "unable to extract current payload"; exit 1; }
+        [ ! -d "$WARP_TMP_EXTRACT_DIR/.warp" ] && warp_message_error "current payload does not contain .warp" && exit 1
+
+        warp_message_info "Aplicando cambios"
+        # Update .warp without touching .warp/docker/config
+        mkdir -p "$PROJECTPATH/.warp" 2>/dev/null
+        tar -C "$WARP_TMP_EXTRACT_DIR/.warp" --exclude='./docker/config' --exclude='./docker/config/*' -cf - . | tar -C "$PROJECTPATH/.warp" -xf - || { warp_message_error "unable to update .warp"; exit 1; }
+
+        chmod 755 "$WARP_TARGET_FILE" || { warp_message_error "unable to set executable permissions on warp"; exit 1; }
+        warp_pending_update_clear
+        warp_update_tmp_clean
+
+        warp_message_info2 "warp self update applied successfully"
+        exit 0
     fi
 
     warp_message_info "Buscando actualizaciones..."

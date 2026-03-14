@@ -106,7 +106,10 @@ Regla obligatoria para agentes:
 - Requiere `docker` y `docker-compose` (legacy v1 en scripts actuales).
 - También requiere `ed` y `tr`.
 - En macOS pueden intervenir `docker-sync` y `rsync`.
+- Para flujos con `warp rsync`, asumir mínimo `rsync >= 3.1.1` (en macOS el `rsync` del sistema puede ser incompatible).
 - La configuración de proyecto (`.env`, `docker-compose-warp.yml`, variantes `-mac`, `-dev`, `-selenium`) puede no existir hasta correr `warp init`.
+- Para Elasticsearch, puede requerirse configuración de host (`vm.max_map_count=262144`) según SO.
+- Si se usan imágenes de DB privadas (ECR/registry privado), considerar expiración de token/login como causa común de fallos en `pull`.
 
 ## 8) Estrategia de validación mínima
 
@@ -129,9 +132,21 @@ Orden de prioridad para entender comportamiento real:
 3. `wiki_docs/*`
 4. `CHANGES.md`
 
-Si hay conflicto entre docs y código, priorizar código y documentar la discrepancia.
+Si hay conflicto entre docs y código, **prevalece el código** y se debe documentar la discrepancia.
 
-## 10) Estilo de colaboración recomendado
+Notas sobre documentación:
+
+- `wiki_docs/` es la fuente editable de documentación.
+- `docs/` es output generado de MkDocs (no editar manualmente HTML/CSS generado salvo necesidad explícita de build/publicación).
+- Parte de la wiki es legacy (versiones/comandos históricos); validar siempre contra el código actual antes de implementar cambios.
+
+## 10) Reglas operativas adicionales
+
+- Tras `warp init`, validar `.gitignore` para evitar versionar artefactos de framework (`.warp/bin`, `.warp/lib`, `.warp/setup`, dumps/volúmenes, etc.).
+- En errores de `warp start` por puertos (`80/443`), priorizar diagnóstico no destructivo (servicios locales ocupando puertos) antes de sugerir `reset`.
+- En troubleshooting, preferir primero acciones reversibles; para `reset --hard` o borrado de volúmenes, pedir confirmación explícita.
+
+## 11) Estilo de colaboración recomendado
 
 - Proponer cambios pequeños y reversibles.
 - Explicar impacto en `init/start/stop` antes de editar.

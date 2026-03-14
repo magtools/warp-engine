@@ -216,6 +216,7 @@ warp_check_gitignore()
         echo ""                                         >> $GITIGNOREFILE
         
     fi
+
 }
 
 warp_check_rsync_version()
