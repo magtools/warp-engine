@@ -6,7 +6,14 @@
       - "6379"
     #volumes:
     #  - "./.warp/docker/volumes/redis-session:/data"
-    #  - ${REDIS_SESSION_CONF}:/usr/local/etc/redis/redis.conf
-    #command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    volumes:
+      - ${REDIS_SESSION_CONF}:/usr/local/etc/redis/redis.conf
+    command:
+      - redis-server
+      - /usr/local/etc/redis/redis.conf
+      - --maxmemory
+      - ${REDIS_SESSION_MAXMEMORY:-256mb}
+      - --maxmemory-policy
+      - ${REDIS_SESSION_MAXMEMORY_POLICY:-noeviction}
     networks:
       - back

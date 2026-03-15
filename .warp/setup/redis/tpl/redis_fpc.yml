@@ -6,7 +6,14 @@
       - "6379"
     #volumes:
     #  - "./.warp/docker/volumes/redis-fpc:/data"
-    #  - ${REDIS_FPC_CONF}:/usr/local/etc/redis/redis.conf
-    #command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    volumes:
+      - ${REDIS_FPC_CONF}:/usr/local/etc/redis/redis.conf
+    command:
+      - redis-server
+      - /usr/local/etc/redis/redis.conf
+      - --maxmemory
+      - ${REDIS_FPC_MAXMEMORY:-512mb}
+      - --maxmemory-policy
+      - ${REDIS_FPC_MAXMEMORY_POLICY:-allkeys-lru}
     networks:
       - back

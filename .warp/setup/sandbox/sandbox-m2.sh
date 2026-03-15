@@ -304,6 +304,8 @@ warp_message_info "Configuring the Redis Service"
 
     echo "REDIS_CACHE_VERSION=$resp_version" >> $ENVIRONMENTVARIABLESFILESAMPLE
     echo "REDIS_CACHE_CONF=$cache_config_file_redis" >> $ENVIRONMENTVARIABLESFILESAMPLE
+    echo "REDIS_CACHE_MAXMEMORY=512mb" >> $ENVIRONMENTVARIABLESFILESAMPLE
+    echo "REDIS_CACHE_MAXMEMORY_POLICY=allkeys-lru" >> $ENVIRONMENTVARIABLESFILESAMPLE
     echo "" >> $ENVIRONMENTVARIABLESFILESAMPLE
 
     warp_message ""
@@ -314,6 +316,8 @@ warp_message_info "Configuring the Redis Service"
 
     echo "REDIS_SESSION_VERSION=$resp_version" >> $ENVIRONMENTVARIABLESFILESAMPLE
     echo "REDIS_SESSION_CONF=$cache_config_file_redis" >> $ENVIRONMENTVARIABLESFILESAMPLE
+    echo "REDIS_SESSION_MAXMEMORY=256mb" >> $ENVIRONMENTVARIABLESFILESAMPLE
+    echo "REDIS_SESSION_MAXMEMORY_POLICY=noeviction" >> $ENVIRONMENTVARIABLESFILESAMPLE
     echo "" >> $ENVIRONMENTVARIABLESFILESAMPLE
 
     warp_message ""
@@ -324,6 +328,8 @@ warp_message_info "Configuring the Redis Service"
 
     echo "REDIS_FPC_VERSION=$resp_version" >> $ENVIRONMENTVARIABLESFILESAMPLE
     echo "REDIS_FPC_CONF=$cache_config_file_redis" >> $ENVIRONMENTVARIABLESFILESAMPLE
+    echo "REDIS_FPC_MAXMEMORY=512mb" >> $ENVIRONMENTVARIABLESFILESAMPLE
+    echo "REDIS_FPC_MAXMEMORY_POLICY=allkeys-lru" >> $ENVIRONMENTVARIABLESFILESAMPLE
     echo "" >> $ENVIRONMENTVARIABLESFILESAMPLE
 
     # Control will enter here if $PATH_CONFIG_REDIS doesn't exist.

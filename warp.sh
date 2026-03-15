@@ -135,6 +135,11 @@ main () {
         hyva_main $*
         ;;
 
+        memory)
+        shift 1
+        memory_main $*
+        ;;
+
         logs)
         logs_main $*
         ;;
